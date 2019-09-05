@@ -47,6 +47,20 @@ class Trie
     }
 
     /**
+     * Add multiple words to trie.
+     *
+     * @param string[] $words
+     *
+     * @return void
+     */
+    public function addMultiple(array $words)
+    {
+        foreach ($words as $word) {
+            $this->add($word);
+        }
+    }
+
+    /**
      * Remove word from trie.
      *
      * @param string $word
@@ -89,6 +103,20 @@ class Trie
         }
 
         $this->rootNode->remove($currentValue);
+    }
+
+    /**
+     * Remove multiple words from trie.
+     *
+     * @param string[] $words
+     *
+     * @return void;
+     */
+    public function removeMultiple($words)
+    {
+        foreach ($words as $word) {
+            $this->remove($word);
+        }
     }
 
     /**
