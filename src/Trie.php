@@ -17,7 +17,7 @@ class Trie
     public function __construct($encoding = 'UTF-8')
     {
         $this->encoding = $encoding;
-        $this->rootNode = new TrieNode('');
+        $this->rootNode = new TrieNode();
     }
 
     /**
@@ -36,13 +36,23 @@ class Trie
 
         $currentNode = $this->rootNode;
 
-        for ($i = 0; $i < $length; $i++) {
+        for ($i = 0; $i < $length; $i ++) {
+            $isLast = $length - 1 == $i;
             $value = $this->valueOf($word, $i);
-            if (!$currentNode->has($value)) {
-                $currentNode->add($value);
+
+            if ($currentNode->hasChild($value)) {
+                if ($isLast) {
+                    $currentNode->getChild($value)->setValue($value);
+                }
+            } else {
+                if ($isLast) {
+                    $currentNode->addChild($value, false);
+                } else {
+                    $currentNode->addChild($value);
+                }
             }
 
-            $currentNode = $currentNode->get($value);
+            $currentNode = $currentNode->getChild($value);
         }
     }
 
@@ -74,35 +84,50 @@ class Trie
             return;
         }
 
-        $nodeStack = new \SplStack();
+        $nodeStack = [];
 
         $currentNode = $this->rootNode;
-        for ($i = 0; $i < $length; $i++) {
+        array_push($nodeStack, [null, $this->rootNode]);
+
+        for ($i = 0; $i < $length; $i ++) {
             $value = $this->valueOf($word, $i);
-            if (!$currentNode->has($value)) {
-                return;
+            if (!$currentNode->hasChild($value)) {
+                $nodeStack = [];
+                break;
             }
 
-            $currentNode = $currentNode->get($value);
-            $nodeStack->push($currentNode);
+            $currentNode = $currentNode->getChild($value);
+            array_push($nodeStack, [$value, $currentNode]);
 
-            if ($i == $length - 1 && !$currentNode->isLeaf()) {
-                return;
+            if ($i == $length - 1 && !$currentNode->hasValue()) {
+                $nodeStack = [];
+                break;
             }
         }
 
-        /** @var \MilkyThinking\Trie\TrieNode $currentNode */
-        $currentNode = $nodeStack->pop();
-        $currentValue = $currentNode->value();
+        if ($nodeStack) {
+            $nodeStackCount = count($nodeStack);
+            for ($i = $nodeStackCount - 1; $i >= 0; $i--) {
+                /** @var \MilkyThinking\Trie\TrieNode $currentNode */
+                list($currentValue, $currentNode) = $nodeStack[$i];
+                if ($currentNode->hasValue() && $isFirst = ($i == $nodeStackCount- 1)) {
+                    $currentNode->unsetValue();
+                    if ($currentNode->hasChildren()) {
+                        break;
+                    }
+                }
 
-        while (!$nodeStack->isEmpty()) {
-            $currentNode = $nodeStack->pop();
-            $currentNode->remove($currentValue);
+                if (isset($nodeStack[$i - 1])) {
+                    /** @var \MilkyThinking\Trie\TrieNode $parentNode */
+                    list(, $parentNode) = $nodeStack[$i - 1];
+                    $parentNode->removeChild($currentValue);
 
-            $currentValue = $currentNode->value();
+                    if ($parentNode->hasChildren() || $parentNode->hasValue()) {
+                        break;
+                    }
+                }
+            }
         }
-
-        $this->rootNode->remove($currentValue);
     }
 
     /**
@@ -139,29 +164,19 @@ class Trie
             $matchedWord = '';
             for ($j = $i; $j < $length; $j ++) {
                 $value = $this->valueOf($content, $j);
-                if ($currentNode->has($value)) {
-                    $matchedWord .= $value;
-                    $currentNode = $currentNode->get($value);
-
-                    if ($j == $length - 1 && $currentNode->isLeaf()) {
-                        if (!isset($matchedWords[$matchedWord])) {
-                            $matchedWords[$matchedWord] = 1;
-                        } else {
-                            $matchedWords[$matchedWord] += 1;
-                        }
-                    }
-
-                    continue;
-                } else {
-                    if ($currentNode->isLeaf()) {
-                        if (!isset($matchedWords[$matchedWord])) {
-                            $matchedWords[$matchedWord] = 1;
-                        } else {
-                            $matchedWords[$matchedWord] += 1;
-                        }
-                    }
-
+                if (!$currentNode->hasChild($value)) {
                     break;
+                }
+
+                $matchedWord .= $value;
+                $currentNode = $currentNode->getChild($value);
+
+                if ($currentNode->hasValue()) {
+                    if (!isset($matchedWords[$matchedWord])) {
+                        $matchedWords[$matchedWord] = 1;
+                    } else {
+                        $matchedWords[$matchedWord] += 1;
+                    }
                 }
             }
         }

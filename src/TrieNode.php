@@ -7,7 +7,7 @@ class TrieNode
     /**
      * Node value.
      *
-     * @var string
+     * @var string|null
      */
     private $value;
 
@@ -18,7 +18,7 @@ class TrieNode
      */
     private $children = [];
 
-    public function __construct($value)
+    public function __construct($value = null)
     {
         $this->value = $value;
     }
@@ -34,13 +34,39 @@ class TrieNode
     }
 
     /**
-     * Check if current node is leaf.
+     * Set current node value.
+     *
+     * @param string $value
+     *
+     * @return $this
+     */
+    public function setValue($value)
+    {
+        $this->value = $value;
+
+        return $this;
+    }
+
+    /**
+     * Unset current node value.
+     *
+     * @return $this
+     */
+    public function unsetValue()
+    {
+        $this->value = null;
+
+        return $this;
+    }
+
+    /**
+     * Check if current node has value.
      *
      * @return bool
      */
-    public function isLeaf()
+    public function hasValue()
     {
-        return empty($this->children);
+        return !is_null($this->value);
     }
 
     /**
@@ -50,9 +76,19 @@ class TrieNode
      *
      * @return bool
      */
-    public function has($value)
+    public function hasChild($value)
     {
         return isset($this->children[$value]);
+    }
+
+    /**
+     * Check if current node has children.
+     *
+     * @return bool
+     */
+    public function hasChildren()
+    {
+        return !empty($this->children);
     }
 
     /**
@@ -62,9 +98,9 @@ class TrieNode
      *
      * @return \MilkyThinking\Trie\TrieNode
      */
-    public function get($value)
+    public function getChild($value)
     {
-        if (!$this->has($value)) {
+        if (!$this->hasChild($value)) {
             throw new \RuntimeException("$value not found.");
         }
 
@@ -74,13 +110,20 @@ class TrieNode
     /**
      * Add child node with value.
      *
-     * @param $value
+     * @param string $value
+     * @param bool $nullable
      *
-     * @return void
+     * @return self
      */
-    public function add($value)
+    public function addChild($value, $nullable = true)
     {
-        $this->children[$value] = new TrieNode($value);
+        if ($nullable) {
+            $this->children[$value] = new TrieNode();
+        } else {
+            $this->children[$value] = new TrieNode($value);
+        }
+
+        return $this;
     }
 
     /**
@@ -88,10 +131,12 @@ class TrieNode
      *
      * @param $value
      *
-     * @return void
+     * @return self
      */
-    public function remove($value)
+    public function removeChild($value)
     {
         unset($this->children[$value]);
+
+        return $this;
     }
 }
